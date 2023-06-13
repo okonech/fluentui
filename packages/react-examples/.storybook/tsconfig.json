@@ -1,17 +1,10 @@
 {
-  "extends": "../../../tsconfig.base.json",
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "jsx": "preserve",
-    "noEmit": true,
+    "outDir": "",
     "allowJs": true,
     "checkJs": true,
-    "allowSyntheticDefaultImports": true,
-    "baseUrl": "../../..",
-    "paths": {
-      "@fluentui/scripts/storybook/webpack.config": ["scripts/storybook/webpack.config.js"],
-      "@fluentui/font-icons-mdl2": ["packages/font-icons-mdl2/src/index.ts"],
-      "@fluentui/storybook": ["packages/storybook/src/index.ts"]
-    }
+    "types": ["static-assets", "environment", "storybook__addons"]
   },
-  "include": ["**/*.js"]
+  "include": ["../src/**/*.stories.ts", "../src/**/*.stories.tsx", "*.js"]
 }
