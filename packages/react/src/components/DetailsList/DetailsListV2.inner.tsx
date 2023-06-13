@@ -1,13 +1,6 @@
 import * as React from 'react';
 
 import { FocusRects, KeyCodes, getRTLSafeKeyCode, classNamesFunction, memoizeFunction } from '../../Utilities';
-import {
-  CheckboxVisibility,
-  ColumnActionsMode,
-  ConstrainMode,
-  DetailsListLayoutMode,
-  ColumnDragEndLocation,
-} from '../DetailsList/DetailsListV2.types';
 import { DetailsHeader } from '../DetailsList/DetailsHeader';
 import { SelectAllVisibility } from '../DetailsList/DetailsHeader.types';
 import { DetailsRowBase } from '../DetailsList/DetailsRow.base';
@@ -23,12 +16,7 @@ import { DEFAULT_CELL_STYLE_PROPS } from './DetailsRow.styles';
 import { composeComponentAs, composeRenderFunction, getId } from '@fluentui/utilities';
 import { useConst } from '@fluentui/react-hooks';
 import type { IRenderFunction } from '../../Utilities';
-import type {
-  IColumn,
-  IDetailsListProps,
-  IDetailsListStyles,
-  IDetailsListStyleProps,
-} from '../DetailsList/DetailsListV2.types';
+import type { IDetailsListPropsV2 } from '../DetailsList/DetailsListV2.types';
 import type {
   IDetailsHeader,
   IDetailsHeaderProps,
@@ -40,6 +28,15 @@ import type { IFocusZone, IFocusZoneProps } from '../../FocusZone';
 import type { ISelection } from '../../Selection';
 import type { IGroupedList, IGroupDividerProps, IGroupRenderProps, IGroup } from '../../GroupedList';
 import type { IListProps } from '../../List';
+import {
+  CheckboxVisibility,
+  ColumnDragEndLocation,
+  ConstrainMode,
+  DetailsListLayoutMode,
+  IColumn,
+  IDetailsListStyleProps,
+  IDetailsListStyles,
+} from './DetailsList.types';
 
 const getClassNames = classNamesFunction<IDetailsListStyleProps, IDetailsListStyles>();
 
@@ -55,15 +52,13 @@ export interface IDetailsListState {
    * A unique object used to force-update the List when it changes.
    */
   version: {};
-  getDerivedStateFromProps(nextProps: IDetailsListProps, previousState: IDetailsListState): IDetailsListState;
+  getDerivedStateFromProps(nextProps: IDetailsListPropsV2, previousState: IDetailsListState): IDetailsListState;
 }
-
-const MIN_COLUMN_WIDTH = 100; // this is the global min width
 
 const DEFAULT_RENDERED_WINDOWS_AHEAD = 2;
 const DEFAULT_RENDERED_WINDOWS_BEHIND = 2;
 
-type IDetailsListInnerProps = Omit<IDetailsListProps, 'selection'> &
+type IDetailsListInnerProps = Omit<IDetailsListPropsV2, 'selection'> &
   IDetailsListState & {
     selection: ISelection;
     dragDropHelper: DragDropHelper | undefined;
@@ -742,47 +737,7 @@ export const DetailsListInnerV2: React.ComponentType<IDetailsListInnerProps> = (
   );
 };
 
-export function buildColumns(
-  items: any[],
-  canResizeColumns?: boolean,
-  onColumnClick?: (ev: React.MouseEvent<HTMLElement>, column: IColumn) => void,
-  sortedColumnKey?: string,
-  isSortedDescending?: boolean,
-  groupedColumnKey?: string,
-  isMultiline?: boolean,
-  columnActionsMode?: ColumnActionsMode,
-) {
-  const columns: IColumn[] = [];
-
-  if (items && items.length) {
-    const firstItem = items[0];
-
-    for (const propName in firstItem) {
-      if (firstItem.hasOwnProperty(propName)) {
-        columns.push({
-          key: propName,
-          name: propName,
-          fieldName: propName,
-          minWidth: MIN_COLUMN_WIDTH,
-          maxWidth: 300,
-          isCollapsible: !!columns.length,
-          isMultiline: isMultiline === undefined ? false : isMultiline,
-          isSorted: sortedColumnKey === propName,
-          isSortedDescending: !!isSortedDescending,
-          isRowHeader: false,
-          columnActionsMode: columnActionsMode ?? ColumnActionsMode.clickable,
-          isResizable: canResizeColumns,
-          onColumnClick,
-          isGrouped: groupedColumnKey === propName,
-        });
-      }
-    }
-  }
-
-  return columns;
-}
-
-function getGroupNestingDepth(groups: IDetailsListProps['groups']): number {
+function getGroupNestingDepth(groups: IDetailsListPropsV2['groups']): number {
   let level = 0;
   let groupsInLevel = groups;
 
@@ -798,7 +753,7 @@ interface IGroupedDetailsListIndexMap {
   [key: string]: { numOfGroupHeadersBeforeItem: number; totalRowCount: number };
 }
 
-function useGroupedDetailsListIndexMap(groups: IDetailsListProps['groups']) {
+function useGroupedDetailsListIndexMap(groups: IDetailsListPropsV2['groups']) {
   return React.useMemo((): IGroupedDetailsListIndexMap => {
     const indexMap: IGroupedDetailsListIndexMap = {};
     if (groups) {

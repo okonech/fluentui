@@ -3,10 +3,11 @@ import * as React from 'react';
 import { initializeComponentRef, Async, elementContains } from '../../Utilities';
 import {
   CheckboxVisibility,
-  ColumnActionsMode,
   ConstrainMode,
   DetailsListLayoutMode,
+  IColumn,
   IColumnDragDropDetails,
+  IDetailsList,
 } from '../DetailsList/DetailsList.types';
 import { DetailsRowBase } from '../DetailsList/DetailsRow.base';
 import { DetailsRow } from '../DetailsList/DetailsRow';
@@ -20,33 +21,19 @@ import { CHECK_CELL_WIDTH as CHECKBOX_WIDTH } from './DetailsRowCheck.styles';
 // For every group level there is a GroupSpacer added. Importing this const to have the source value in one place.
 import { SPACER_WIDTH as GROUP_EXPAND_WIDTH } from '../GroupedList/GroupSpacer';
 import type { IRenderFunction } from '../../Utilities';
-import type { IColumn, IDetailsList, IDetailsListProps } from '../DetailsList/DetailsListV2.types';
+import type { IDetailsListPropsV2 } from '../DetailsList/DetailsListV2.types';
 import type { IDetailsHeader } from '../DetailsList/DetailsHeader.types';
 import type { IDetailsRowProps } from '../DetailsList/DetailsRow.types';
 import type { IFocusZone } from '../../FocusZone';
 import type { IObjectWithKey, ISelection } from '../../Selection';
 import type { IGroupedList } from '../../GroupedList';
-import { DetailsListInnerV2 } from './DetailsListV2.inner';
-
-export interface IDetailsListState {
-  focusedItemIndex: number;
-  lastWidth?: number;
-  lastSelectionMode?: SelectionMode;
-  adjustedColumns: IColumn[];
-  isCollapsed?: boolean;
-  isSizing?: boolean;
-  isSomeGroupExpanded?: boolean;
-  /**
-   * A unique object used to force-update the List when it changes.
-   */
-  version: {};
-  getDerivedStateFromProps(nextProps: IDetailsListProps, previousState: IDetailsListState): IDetailsListState;
-}
+import { DetailsListInnerV2, IDetailsListState } from './DetailsListV2.inner';
+import { buildColumns } from './DetailsList.base';
 
 const MIN_COLUMN_WIDTH = 100; // this is the global min width
 
 @withViewport
-export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetailsListState> implements IDetailsList {
+export class DetailsListBaseV2 extends React.Component<IDetailsListPropsV2, IDetailsListState> implements IDetailsList {
   public static defaultProps = {
     layoutMode: DetailsListLayoutMode.justified,
     selectionMode: SelectionMode.multiple,
@@ -76,13 +63,13 @@ export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetai
   };
 
   public static getDerivedStateFromProps(
-    nextProps: IDetailsListProps,
+    nextProps: IDetailsListPropsV2,
     previousState: IDetailsListState,
   ): IDetailsListState {
     return previousState.getDerivedStateFromProps(nextProps, previousState);
   }
 
-  constructor(props: IDetailsListProps) {
+  constructor(props: IDetailsListPropsV2) {
     super(props);
 
     initializeComponentRef(this);
@@ -205,7 +192,7 @@ export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetai
     this._async.dispose();
   }
 
-  public componentDidUpdate(prevProps: IDetailsListProps, prevState: IDetailsListState) {
+  public componentDidUpdate(prevProps: IDetailsListPropsV2, prevState: IDetailsListState) {
     this._notifyColumnsResized();
 
     if (this._initialFocusedIndex !== undefined) {
@@ -286,7 +273,7 @@ export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetai
   };
 
   private _getDerivedStateFromProps = (
-    nextProps: IDetailsListProps,
+    nextProps: IDetailsListPropsV2,
     previousState: IDetailsListState,
   ): IDetailsListState => {
     const {
@@ -466,7 +453,7 @@ export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetai
   }
 
   private _adjustColumns(
-    newProps: IDetailsListProps,
+    newProps: IDetailsListPropsV2,
     previousState: IDetailsListState,
     forceUpdate?: boolean,
     resizingColumnIndex?: number,
@@ -484,7 +471,7 @@ export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetai
 
   /** Returns adjusted columns, given the viewport size and layout mode. */
   private _getAdjustedColumns(
-    newProps: IDetailsListProps,
+    newProps: IDetailsListPropsV2,
     previousState: IDetailsListState | undefined,
     forceUpdate?: boolean,
     resizingColumnIndex?: number,
@@ -529,7 +516,7 @@ export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetai
   }
 
   /** Builds a set of columns based on the given columns mixed with the current overrides. */
-  private _getFixedColumns(newColumns: IColumn[], viewportWidth: number, props: IDetailsListProps): IColumn[] {
+  private _getFixedColumns(newColumns: IColumn[], viewportWidth: number, props: IDetailsListPropsV2): IColumn[] {
     const { selectionMode = this._selection.mode, checkboxVisibility, flexMargin, skipViewportMeasures } = this.props;
     let remainingWidth = viewportWidth - (flexMargin || 0);
     let sumProportionalWidth = 0;
@@ -594,7 +581,7 @@ export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetai
   }
 
   /** Builds a set of columns to fix within the viewport width. */
-  private _getJustifiedColumns(newColumns: IColumn[], viewportWidth: number, props: IDetailsListProps): IColumn[] {
+  private _getJustifiedColumns(newColumns: IColumn[], viewportWidth: number, props: IDetailsListPropsV2): IColumn[] {
     const { selectionMode = this._selection.mode, checkboxVisibility, skipViewportMeasures } = props;
     const rowCheckWidth =
       selectionMode !== SelectionMode.none && checkboxVisibility !== CheckboxVisibility.hidden ? CHECKBOX_WIDTH : 0;
@@ -775,47 +762,7 @@ export class DetailsListBaseV2 extends React.Component<IDetailsListProps, IDetai
   }
 }
 
-export function buildColumns(
-  items: any[],
-  canResizeColumns?: boolean,
-  onColumnClick?: (ev: React.MouseEvent<HTMLElement>, column: IColumn) => void,
-  sortedColumnKey?: string,
-  isSortedDescending?: boolean,
-  groupedColumnKey?: string,
-  isMultiline?: boolean,
-  columnActionsMode?: ColumnActionsMode,
-) {
-  const columns: IColumn[] = [];
-
-  if (items && items.length) {
-    const firstItem = items[0];
-
-    for (const propName in firstItem) {
-      if (firstItem.hasOwnProperty(propName)) {
-        columns.push({
-          key: propName,
-          name: propName,
-          fieldName: propName,
-          minWidth: MIN_COLUMN_WIDTH,
-          maxWidth: 300,
-          isCollapsible: !!columns.length,
-          isMultiline: isMultiline === undefined ? false : isMultiline,
-          isSorted: sortedColumnKey === propName,
-          isSortedDescending: !!isSortedDescending,
-          isRowHeader: false,
-          columnActionsMode: columnActionsMode ?? ColumnActionsMode.clickable,
-          isResizable: canResizeColumns,
-          onColumnClick,
-          isGrouped: groupedColumnKey === propName,
-        });
-      }
-    }
-  }
-
-  return columns;
-}
-
-function getPaddedWidth(column: IColumn, props: IDetailsListProps, paddingOnly?: true): number {
+function getPaddedWidth(column: IColumn, props: IDetailsListPropsV2, paddingOnly?: true): number {
   const { cellStyleProps = DEFAULT_CELL_STYLE_PROPS } = props;
 
   return (

@@ -23,4 +23,8 @@ export * from './DetailsColumn.base';
 export * from './DetailsColumn.styles';
 export * from './DetailsColumn.types';
 
+export * from './DetailsListV2';
+export * from './DetailsListV2.base';
+export * from './DetailsListV2.types';
+
 // ShimmeredDetailsList is not exported here as it is exported from ../ShimmeredDetailsList.ts
