@@ -32,7 +32,6 @@ import { buildColumns } from './DetailsList.base';
 
 const MIN_COLUMN_WIDTH = 100; // this is the global min width
 
-@withViewport
 export class DetailsListBaseV2 extends React.Component<IDetailsListPropsV2, IDetailsListState> implements IDetailsList {
   public static defaultProps = {
     layoutMode: DetailsListLayoutMode.justified,
